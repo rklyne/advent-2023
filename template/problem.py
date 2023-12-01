@@ -1,12 +1,37 @@
-from data import data
+import typing
+import unittest
 
-def part1():
-    return -1
-
-
-def part2():
-    return -1
+from data import data, example
 
 
-print("part 1: {}".format(part1()))
-print("part 2: {}".format(part2()))
+Input = str
+
+
+def parse(input: str) -> Input:
+    return input
+
+
+def part1(input: Input):
+    return 0
+
+
+def part2(input: Input):
+    return 0
+
+
+class Tests(unittest.TestCase):
+    def test_part1_example_answer(self):
+        self.assertEqual(-1, part1(example))
+
+    def test_part1_answer(self):
+        self.assertEqual(-1, part1(data))
+
+    def test_part2_example_answer(self):
+        self.assertEqual(-1, part2(example))
+
+    def test_part2_answer(self):
+        self.assertEqual(-1, part2(data))
+
+
+if __name__ == "__main__":
+    unittest.main()
