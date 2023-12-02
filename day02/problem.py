@@ -48,7 +48,16 @@ def part1(input: Input):
 
 
 def part2(input: Input):
-    return 0
+    game_cubes = [
+        list(map(max, zip(*game[1])))
+        for game in input
+    ]
+    return sum(
+        [
+            draw[0] * draw[1] * draw[2]
+            for draw in game_cubes
+        ]
+    )
 
 
 class Tests(unittest.TestCase):
@@ -60,10 +69,10 @@ class Tests(unittest.TestCase):
         self.assertEqual(8, part1(parse(example)))
 
     def test_part1_answer(self):
-        self.assertEqual(-1, part1(parse(data)))
+        self.assertEqual(2283, part1(parse(data)))
 
     def test_part2_example_answer(self):
-        self.assertEqual(-1, part2(parse(example)))
+        self.assertEqual(2286, part2(parse(example)))
 
     def test_part2_answer(self):
         self.assertEqual(-1, part2(parse(data)))
