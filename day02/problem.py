@@ -1,11 +1,10 @@
-from pprint import pprint
 import typing
 import unittest
 
 from data import data, example
 
 
-Id = int
+Id = typing.NewType("Id", int)
 Draw = typing.Tuple[int, int, int]  # R G B
 Game = typing.Tuple[Id, list[Draw]]
 Input = list[Game]
@@ -17,18 +16,18 @@ def parse(input: str) -> Input:
         for group in draw_text.split(", "):
             n, colour = group.split(" ")
             items[colour[0]] = int(n)
-        return [items.get("r", 0), items.get("g", 0), items.get("b", 0)]
+        return (items.get("r", 0), items.get("g", 0), items.get("b", 0))
 
     def parse_game(game_text: str) -> Game:
         # Game 1: 3 blue, 4 red; 1 red, 2 green, 6 blue; 2 green
         id_text, draws = game_text.split(": ")
-        return [int(id_text[5:]), list(map(parse_draw, draws.split("; ")))]
+        return (Id(int(id_text[5:])), list(map(parse_draw, draws.split("; "))))
 
     return list(map(parse_game, input.split("\n")))
 
 
 def part1(input: Input):
-    limits: Draw = [12, 13, 14]
+    limits: Draw = (12, 13, 14)
     possible_games = [
         game
         for game in input
@@ -39,25 +38,12 @@ def part1(input: Input):
             ]
         )
     ]
-    return sum(
-        [
-            game[0]
-            for game in possible_games
-        ]
-    )
+    return sum([game[0] for game in possible_games])
 
 
 def part2(input: Input):
-    game_cubes = [
-        list(map(max, zip(*game[1])))
-        for game in input
-    ]
-    return sum(
-        [
-            draw[0] * draw[1] * draw[2]
-            for draw in game_cubes
-        ]
-    )
+    game_cubes = [list(map(max, zip(*game[1]))) for game in input]
+    return sum([draw[0] * draw[1] * draw[2] for draw in game_cubes])
 
 
 class Tests(unittest.TestCase):
