@@ -21,16 +21,16 @@ def part2(input: Input):
 
 class Tests(unittest.TestCase):
     def test_part1_example_answer(self):
-        self.assertEqual(-1, part1(example))
+        self.assertEqual(-1, part1(parse(example)))
 
     def test_part1_answer(self):
-        self.assertEqual(-1, part1(data))
+        self.assertEqual(-1, part1(parse(data)))
 
     def test_part2_example_answer(self):
-        self.assertEqual(-1, part2(example))
+        self.assertEqual(-1, part2(parse(example)))
 
     def test_part2_answer(self):
-        self.assertEqual(-1, part2(data))
+        self.assertEqual(-1, part2(parse(data)))
 
 
 if __name__ == "__main__":

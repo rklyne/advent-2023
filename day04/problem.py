@@ -1,14 +1,19 @@
 import typing
 import unittest
 
+import asyncio
+
 from data import data, example
 
 Card = typing.Tuple[list[int], list[int]]
 Input = list[Card]
 
-# This garbage doesn't type check but it runs :D
-def flatten(ls) -> list[int]:
-    l = []
+Item = typing.TypeVar("Item")
+OneOrMany = typing.Union[Item, list[Item]]
+
+
+def flatten(ls: OneOrMany) -> list[int]:
+    l: list[int] = []
     for item in ls:
         if isinstance(item, list):
             l.extend(flatten(item))
@@ -44,7 +49,7 @@ def part1(input: Input):
     return sum(map(win_score, input))
 
 
-def part2(input: Input):
+def part2_slow(input: Input):
     winners = list(map(win_count, input))
     card_wins_cards = {}
     for num, wins in enumerate(winners, 1):
@@ -54,12 +59,49 @@ def part2(input: Input):
             l.append(num + i)
     card_scores = {}
     for num, wins in enumerate(winners, 1):
-        l: list[int | list] = [1]
-        card_scores[num] = l
+        l2: OneOrMany = [1]
+        card_scores[num] = l2
     for num, wins in enumerate(winners, 1):
         for copy in card_wins_cards[num]:
             card_scores[num].append(card_scores[copy])
     return len(flatten(card_scores.values()))
+
+
+def part2_async(input: Input):
+    winners = list(map(win_count, input))
+    card_wins_cards = {}
+    for num, wins in enumerate(winners, 1):
+        l: list[int] = []
+        card_wins_cards[num] = l
+        for i in range(1, wins+1):
+            l.append(num + i)
+
+    async def sum_score():
+        values: list[asyncio.Future] = [
+            asyncio.Future()
+            for _ in winners
+        ]
+
+        async def compute(num: int) -> int:
+            wins = card_wins_cards[num]
+            total = sum([
+                await values[n-1]
+                for n in wins
+            ]) + 1
+            values[num-1].set_result(total)
+
+        for num, wins in reversed(list(enumerate(winners, 1))):
+            await asyncio.create_task(compute(num))
+
+        total = 0
+        for value in values:
+            total += await value
+        return total
+
+    return asyncio.run(sum_score())
+
+
+part2 = part2_async
 
 
 class Tests(unittest.TestCase):
