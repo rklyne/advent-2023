@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Tuple, Iterable
 import unittest
 
 from data import data, example
@@ -11,12 +11,17 @@ Seed = int
 Input = Tuple[list[Seed], list[Mapping]]
 
 
+def threeple(xs_iter: Iterable[int]) -> MapLine:
+    xs = list(xs_iter)
+    return xs[0], xs[1], xs[2]
+
+
 def parse(input: str) -> Input:
     chunks = input.split("\n\n")
     seed_txt = chunks[0][7:]
 
     def parse_mapping(txt: str) -> Mapping:
-        return [tuple(map(int, line.split(" "))) for line in txt.split("\n")[1:]]
+        return [threeple(map(int, line.split(" "))) for line in txt.split("\n")[1:]]
 
     maps = map(parse_mapping, chunks[1:])
     return (list(map(int, seed_txt.split(" "))), list(maps))
@@ -70,12 +75,12 @@ def part2(input: Input, init_pad: int = 0):
 
     all_numbers: list[int] = []
     for mapping in mappings:
-        to_reverse.append(mapping)
         for dst, start, l in mapping:
             all_numbers.append(map_all_reverse(dst, to_reverse))
             all_numbers.append(map_all_reverse(start, to_reverse))
             all_numbers.append(map_all_reverse(dst + l - 1, to_reverse))
             all_numbers.append(map_all_reverse(start + l - 1, to_reverse))
+        to_reverse.append(mapping)
 
     seed_pairs: list[Range] = []
     seed_ranges = input[0][:]
@@ -93,28 +98,13 @@ def part2(input: Input, init_pad: int = 0):
     def map_all_input(item: int):
         return map_all(item, mappings)
 
-    pad_size = init_pad
-    minsize = max(all_numbers)
-    while True:
-        locations = map(
-            map_all_input,
-            list(
-                filter(
-                    lambda s: in_ranges(s, seed_pairs), [s - pad_size for s in seeds]
-                )
-            )
-            + list(
-                filter(
-                    lambda s: in_ranges(s, seed_pairs), [s + pad_size for s in seeds]
-                )
-            ),
+    locations = map(
+        map_all_input,
+        filter(
+            lambda s: in_ranges(s, seed_pairs), [s for s in seeds]
         )
-        new_min = min(locations)
-        if new_min >= minsize:
-            print(f"padd: {pad_size}")
-            return new_min
-        minsize = new_min
-        pad_size += 1
+    )
+    return min(locations)
 
 
 class Tests(unittest.TestCase):
