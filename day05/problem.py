@@ -30,15 +30,18 @@ def map_value(value: int, ms: Mapping) -> int:
 
 
 def map_value_reverse(value: int, ms: Mapping) -> int:
-    for dst, src, l in ms:
-        if value >= dst and value < dst + l:
-            return value - dst + src
-    return value
+    return map_value(value, [(src, dst, l) for dst, src, l in ms])
 
 
 def map_all(item: int, mappings: list[Mapping]) -> int:
     for m in mappings:
         item = map_value(item, m)
+    return item
+
+
+def map_all_reverse(item: int, mappings: list[Mapping]) -> int:
+    for m in reversed(mappings):
+        item = map_value_reverse(item, m)
     return item
 
 
@@ -67,20 +70,12 @@ def part2(input: Input, init_pad: int = 0):
 
     all_numbers: list[int] = []
     for mapping in mappings:
-        to_reverse.insert(0, mapping)
+        to_reverse.append(mapping)
         for dst, start, l in mapping:
-            all_numbers.append(map_all(dst, to_reverse))
-            all_numbers.append(map_all(start, to_reverse))
-            all_numbers.append(map_all(dst + l, to_reverse))
-            all_numbers.append(map_all(start + l, to_reverse))
-            all_numbers.append(map_all(dst + l + 1, to_reverse))
-            all_numbers.append(map_all(start + l + 1, to_reverse))
-            all_numbers.append(map_all(dst + l + 2, to_reverse))
-            all_numbers.append(map_all(start + l + 2, to_reverse))
-            all_numbers.append(map_all(dst + l - 1, to_reverse))
-            all_numbers.append(map_all(start + l - 1, to_reverse))
-            all_numbers.append(map_all(dst + l - 2, to_reverse))
-            all_numbers.append(map_all(start + l - 2, to_reverse))
+            all_numbers.append(map_all_reverse(dst, to_reverse))
+            all_numbers.append(map_all_reverse(start, to_reverse))
+            all_numbers.append(map_all_reverse(dst + l - 1, to_reverse))
+            all_numbers.append(map_all_reverse(start + l - 1, to_reverse))
 
     seed_pairs: list[Range] = []
     seed_ranges = input[0][:]
@@ -90,21 +85,10 @@ def part2(input: Input, init_pad: int = 0):
         seed_pairs.append((start, count))
         seed_ranges = seed_ranges[2:]
         seeds.add(start)
-        seeds.add(start - 1)
-        seeds.add(start + count)
-        seeds.add(start + count + 1)
         seeds.add(start + count - 1)
         for n in all_numbers:
             if n >= start and n <= start + count:
                 seeds.add(n)
-                # seeds.add(n+2)
-                # seeds.add(n+1)
-                # seeds.add(n-1)
-                # seeds.add(n-2)
-                # seeds.add(n-3)
-                # seeds.add(n+3)
-                # seeds.add(n-4)
-                # seeds.add(n+4)
 
     def map_all_input(item: int):
         return map_all(item, mappings)
@@ -114,7 +98,16 @@ def part2(input: Input, init_pad: int = 0):
     while True:
         locations = map(
             map_all_input,
-            filter(lambda s: in_ranges(s, seed_pairs), [s - pad_size for s in seeds]),
+            list(
+                filter(
+                    lambda s: in_ranges(s, seed_pairs), [s - pad_size for s in seeds]
+                )
+            )
+            + list(
+                filter(
+                    lambda s: in_ranges(s, seed_pairs), [s + pad_size for s in seeds]
+                )
+            ),
         )
         new_min = min(locations)
         if new_min >= minsize:
@@ -149,11 +142,12 @@ class Tests(unittest.TestCase):
         self.assertEqual(46, part2(parse(example)))
 
     def test_part2_answer(self):
-        # not 15556350
-        # not 15556349
-        # too low 8918216
-        # not 18061475
-        self.assertEqual(11554135, part2(parse(data), 6507000))
+        self.assertEqual(11554135, part2(parse(data), 0))
+
+    def test_map_reverse(self):
+        ms = parse(data)[1]
+        n = 282277027
+        self.assertEqual(n, map_all(map_all_reverse(n, ms), ms))
 
 
 if __name__ == "__main__":
