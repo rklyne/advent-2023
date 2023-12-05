@@ -53,12 +53,10 @@ def map_all_reverse(item: int, mappings: list[Mapping]) -> int:
 def part1(input: Input):
     mapping: list[Mapping] = input[1]
 
-    def map_all(item: int) -> int:
-        for m in mapping:
-            item = map_value(item, m)
-        return item
+    def map_item(item: int) -> int:
+        return map_all(item, mapping)
 
-    locations = map(map_all, input[0])
+    locations = map(map_item, input[0])
     return min(locations)
 
 
@@ -76,10 +74,7 @@ def part2(input: Input, init_pad: int = 0):
     all_numbers: list[int] = []
     for mapping in mappings:
         for dst, start, l in mapping:
-            all_numbers.append(map_all_reverse(dst, to_reverse))
             all_numbers.append(map_all_reverse(start, to_reverse))
-            all_numbers.append(map_all_reverse(dst + l - 1, to_reverse))
-            all_numbers.append(map_all_reverse(start + l - 1, to_reverse))
         to_reverse.append(mapping)
 
     seed_pairs: list[Range] = []
@@ -89,8 +84,6 @@ def part2(input: Input, init_pad: int = 0):
         start, count = seed_ranges[0:2]
         seed_pairs.append((start, count))
         seed_ranges = seed_ranges[2:]
-        seeds.add(start)
-        seeds.add(start + count - 1)
         for n in all_numbers:
             if n >= start and n <= start + count:
                 seeds.add(n)
