@@ -67,7 +67,7 @@ def in_ranges(n: int, rs: list[Range]):
     return False
 
 
-def part2(input: Input, init_pad: int = 0):
+def part2(input: Input):
     mappings: list[Mapping] = input[1]
     to_reverse: list[Mapping] = []
 
@@ -125,7 +125,7 @@ class Tests(unittest.TestCase):
         self.assertEqual(46, part2(parse(example)))
 
     def test_part2_answer(self):
-        self.assertEqual(11554135, part2(parse(data), 0))
+        self.assertEqual(11554135, part2(parse(data)))
 
     def test_map_reverse(self):
         ms = parse(data)[1]
