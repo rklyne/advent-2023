@@ -48,14 +48,6 @@ class NodeMap():
         return self._choose(self.nodes[node], step)
 
 
-START = "AAA"
-END = "ZZZ"
-
-
-def part1(input: Input) -> int:
-    return solve(input, START, lambda x: x == END)
-
-
 def solve(input: Input, start: Node, is_end: Callable[[Node], bool]) -> int:
     path = input[0]
     m = NodeMap(input[1])
@@ -68,9 +60,18 @@ def solve(input: Input, start: Node, is_end: Callable[[Node], bool]) -> int:
     return count
 
 
+def part1(input: Input) -> int:
+    START = "AAA"
+    END = "ZZZ"
+    return solve(input, START, lambda x: x == END)
+
+
 def part2(input: Input):
     starts = [n for (n, _) in input[1] if n.endswith("A")]
-    is_end = lambda n: n.endswith("Z")
+
+    def is_end(n: Node) -> bool:
+        return n.endswith("Z")
+
     counts = [solve(input, start, is_end) for start in starts]
     # raise RuntimeError(counts)
     return reduce(math.lcm, counts)
