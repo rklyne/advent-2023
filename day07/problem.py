@@ -1,10 +1,9 @@
 import typing
-from pprint import pprint
 from typing import Tuple, Dict, Iterable
 import unittest
 from functools import cmp_to_key
 
-from data import data, example
+from data import data, example, example2
 
 
 Card = int
@@ -39,14 +38,6 @@ def hand_value(hand: Round) -> int:
         d[card] = 1 + d.get(card, 0)
     return hand_scores[tuple(sorted(d.values()))]
 
-
-J5 = FIVE_KIND - 2
-J4 = FOUR_KIND - 2
-JHOUSE = HOUSE - 2
-J3 = THREE_KIND - 2
-JTWOPAIR = TWO_PAIR - 2
-J2 = PAIR - 2
-
 hand_scores2: typing.Dict[Tuple[Card, Tuple[Card, ...]], int] = {
     (0, (5,)): FIVE_KIND,
     (0, (1, 4)): FOUR_KIND,
@@ -55,24 +46,24 @@ hand_scores2: typing.Dict[Tuple[Card, Tuple[Card, ...]], int] = {
     (0, (1, 2, 2)): TWO_PAIR,
     (0, (1, 1, 1, 2)): PAIR,
     (0, (1, 1, 1, 1, 1)): HIGH_CARD,
-    (1, (4,)): J5,
-    (1, (1, 3)): J4,
-    (1, (2, 2)): max(JHOUSE, J3),
-    (1, (1, 1, 2)): J3,
-    (1, (1, 1, 1, 1)): J2,
-    (2, (3,)): J5,
-    (2, (1, 2)): max(J4, JHOUSE),
-    (2, (1, 1, 1)): max(J3, JTWOPAIR),
-    (3, (2,)): J5,
+    (1, (4,)): FIVE_KIND,
+    (1, (1, 3)): FOUR_KIND,
+    (1, (2, 2)): HOUSE,
+    (1, (1, 1, 2)): THREE_KIND,
+    (1, (1, 1, 1, 1)): PAIR,
+    (2, (3,)): FIVE_KIND,
+    (2, (1, 2)): FOUR_KIND,
+    (2, (1, 1, 1)): THREE_KIND,
+    (3, (2,)): FIVE_KIND,
     (
         3,
         (
             1,
             1,
         ),
-    ): J4,
-    (4, (1,)): J5,
-    (5, ()): J5,
+    ): FOUR_KIND,
+    (4, (1,)): FIVE_KIND,
+    (5, ()): FIVE_KIND,
 }
 
 
@@ -83,6 +74,28 @@ def hand_value2(hand: Round) -> int:
         d[card] = 1 + d.get(card, 0)
     jokers = d.pop(JOKER, 0)
     return hand_scores2[jokers, tuple(sorted(d.values()))]
+
+def hand_value2b(hand: Round) -> int:
+    cards = hand[0]
+    d: Dict[Card, int] = {}
+    for card in cards:
+        d[card] = 1 + d.get(card, 0)
+    jokers = d.pop(JOKER, 0)
+    if jokers:
+        def add_cards(d, card, jokers):
+            d2 = d.copy()
+            d2[card] += jokers
+            return d2
+        tries = [
+            add_cards(d, card, jokers)
+            for card in d
+        ]
+    else:
+        tries = [d]
+    return max([
+        hand_scores[tuple(sorted(filter(bool, d.values())))]
+        for d in tries
+    ])
 
 
 def tuple5(it: Iterable[int]) -> Hand:
@@ -180,7 +193,11 @@ class Tests(unittest.TestCase):
         # not right 252957159
         # not right 254167331
         # not right 254049962
-        self.assertEqual(-1, part2(parse(data)))
+        # right = 253718286
+        self.assertEqual(253718286, part2(parse(data)))
+
+    def test_part2_example2(self):
+        self.assertEqual(2090, part2(parse(example2)))
 
     def joker_pair_beats_high_card(self):
         self.assertEqual(
@@ -290,9 +307,9 @@ class Tests(unittest.TestCase):
             ),
         )
 
-    def test_joker_four_lower_than_four(self):
+    def test_joker_four_of_a_kind_tiebreaks_on_four(self):
         self.assertEqual(
-            WINNER_1,
+            WINNER_5,
             part2(
                 [
                     (parse_hand("3334J"), 5),
@@ -323,6 +340,39 @@ class Tests(unittest.TestCase):
             ),
         )
 
+    def test_5_jokers_loses_to_5_2s(self):
+        self.assertEqual(
+            WINNER_5,
+            part2(
+                [
+                    (parse_hand("22222"), 5),
+                    (parse_hand("JJJJJ"), 1),
+                ]
+            ),
+        )
+
+    def test_5_jokers_beats_four_kind(self):
+        self.assertEqual(
+            WINNER_1,
+            part2(
+                [
+                    (parse_hand("22223"), 5),
+                    (parse_hand("JJJJJ"), 1),
+                ]
+            ),
+        )
+
+    def test_x_beats_y(self):
+        self.assertEqual(
+            2090,
+            part2(
+                [
+                    (parse_hand("57592"), 534),
+                    (parse_hand("Q92KJ"), 778),
+                ]
+            ),
+        )
+
     def test_example_sequence(self):
         hands = [
             "32T3K",
@@ -333,7 +383,6 @@ class Tests(unittest.TestCase):
         ]
         pairs = list(zip(hands, hands[1:]))
         for pair in pairs:
-            print(pair)
             self.assertEqual(
                 WINNER_1,
                 part2(
