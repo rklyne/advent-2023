@@ -90,29 +90,35 @@ def tuple5(it: Iterable[int]) -> Hand:
     return (t1, t2, t3, t4, t5)
 
 
+card_value: Dict[str, Card] = {
+    "1": 1,
+    "2": 2,
+    "3": 3,
+    "4": 4,
+    "5": 5,
+    "6": 6,
+    "7": 7,
+    "8": 8,
+    "9": 9,
+    "T": 10,
+    "J": 11,
+    "Q": 12,
+    "K": 13,
+    "A": 14,
+}
+
+
+def get_card(s: str) -> Card:
+    return card_value[s]
+
+
+def parse_hand(cards: str) -> Hand:
+    return tuple5(map(get_card, cards))
+
+
 def parse(input: str) -> Input:
-    card_value: Dict[str, Card] = {
-        "1": 1,
-        "2": 2,
-        "3": 3,
-        "4": 4,
-        "5": 5,
-        "6": 6,
-        "7": 7,
-        "8": 8,
-        "9": 9,
-        "T": 10,
-        "J": 11,
-        "Q": 12,
-        "K": 13,
-        "A": 14,
-    }
-
-    def get_card(s: str) -> Card:
-        return card_value[s]
-
     return [
-        (tuple5(map(get_card, line.split(" ")[0])), int(line.split(" ")[1]))
+        (parse_hand(line.split(" ")[0]), int(line.split(" ")[1]))
         for line in input.split("\n")
     ]
 
@@ -127,6 +133,7 @@ def mk_cmp_hands(hand_value, card_value):
             if v != 0:
                 return v
         raise RuntimeError("Equals?", r1, r2)
+
     return cmp_hands
 
 
@@ -144,7 +151,7 @@ def part2(input: Input):
 
     cmp_hands = mk_cmp_hands(hand_value2, card_value=remap_card)
     ranked = sorted(input, key=cmp_to_key(cmp_hands))
-    pprint(ranked)
+    # pprint(ranked)
     return sum(rank * bet for rank, (hand, bet) in enumerate(ranked, 1))
 
 
@@ -180,8 +187,8 @@ class Tests(unittest.TestCase):
             WINNER_1,
             part2(
                 [
-                    ((1, 2, 3, 4, 10), 5),
-                    ((1, 2, 3, 4, JOKER), 1),
+                    (parse_hand("2345T"), 5),
+                    (parse_hand("2345J"), 1),
                 ]
             ),
         )
@@ -189,8 +196,8 @@ class Tests(unittest.TestCase):
             WINNER_5,
             part2(
                 [
-                    ((1, 2, 3, 4, JOKER), 5),
-                    ((1, 2, 3, 4, 10), 1),
+                    (parse_hand("2345J"), 5),
+                    (parse_hand("2345T"), 1),
                 ]
             ),
         )
@@ -200,8 +207,8 @@ class Tests(unittest.TestCase):
             WINNER_1,
             part2(
                 [
-                    ((1, 2, 3, 4, JOKER), 5),
-                    ((1, 2, 4, 4, 10), 1),
+                    (parse_hand("2345J"), 5),
+                    (parse_hand("2344T"), 1),
                 ]
             ),
         )
@@ -211,8 +218,8 @@ class Tests(unittest.TestCase):
             WINNER_1,
             part2(
                 [
-                    ((1, 2, 3, 4, JOKER), 5),
-                    ((13, 2, 4, 4, 10), 1),
+                    (parse_hand("2345J"), 5),
+                    (parse_hand("K244T"), 1),
                 ]
             ),
         )
@@ -222,8 +229,8 @@ class Tests(unittest.TestCase):
             WINNER_1,
             part2(
                 [
-                    ((2, 2, 3, 3, JOKER), 5),
-                    ((2, 2, 3, 3, 3), 1),
+                    (parse_hand("2233J"), 5),
+                    (parse_hand("22333"), 1),
                 ]
             ),
         )
@@ -233,8 +240,8 @@ class Tests(unittest.TestCase):
             WINNER_1,
             part2(
                 [
-                    ((2, JOKER, 1, 3, JOKER), 5),
-                    ((2, 2, 3, 3, 3), 1),
+                    (parse_hand("2J13J"), 5),
+                    (parse_hand("22333"), 1),
                 ]
             ),
         )
@@ -244,8 +251,8 @@ class Tests(unittest.TestCase):
             WINNER_5,
             part2(
                 [
-                    ((2, 2, 3, 3, JOKER), 5),
-                    ((1, 2, 3, 3, 3), 1),
+                    (parse_hand("2233J"), 5),
+                    (parse_hand("42333"), 1),
                 ]
             ),
         )
@@ -255,8 +262,8 @@ class Tests(unittest.TestCase):
             WINNER_5,
             part2(
                 [
-                    ((2, 2, 3, JOKER, JOKER), 5),
-                    ((2, 2, 3, 3, 3), 1),
+                    (parse_hand("223JJ"), 5),
+                    (parse_hand("22333"), 1),
                 ]
             ),
         )
@@ -266,8 +273,8 @@ class Tests(unittest.TestCase):
             WINNER_1,
             part2(
                 [
-                    ((1, 2, 3, 4, JOKER), 5),
-                    ((13, 2, 3, 4, 13), 1),
+                    (parse_hand("2345J"), 5),
+                    (parse_hand("K233K"), 1),
                 ]
             ),
         )
@@ -277,8 +284,8 @@ class Tests(unittest.TestCase):
             WINNER_1,
             part2(
                 [
-                    ((3, 3, 3, 3, JOKER), 5),
-                    ((3, 3, 3, 3, 3), 1),
+                    (parse_hand("3333J"), 5),
+                    (parse_hand("33333"), 1),
                 ]
             ),
         )
@@ -288,8 +295,8 @@ class Tests(unittest.TestCase):
             WINNER_1,
             part2(
                 [
-                    ((3, 3, 3, 4, JOKER), 5),
-                    ((3, 3, 3, 3, 4), 1),
+                    (parse_hand("3334J"), 5),
+                    (parse_hand("33334"), 1),
                 ]
             ),
         )
@@ -299,11 +306,43 @@ class Tests(unittest.TestCase):
             WINNER_1,
             part2(
                 [
-                    ((JOKER, 2, 3, 3, JOKER), 5),
-                    ((2, 3, 3, 3, 3), 1),
+                    (parse_hand("J2345"), 5),
+                    (parse_hand("22345"), 1),
                 ]
             ),
         )
+
+    def test_joker_loses_ties_q_vs_t(self):
+        self.assertEqual(
+            WINNER_1,
+            part2(
+                [
+                    (parse_hand("T55J5"), 5),
+                    (parse_hand("QQQJA"), 1),
+                ]
+            ),
+        )
+
+    def test_example_sequence(self):
+        hands = [
+            "32T3K",
+            "KK677",
+            "T55J5",
+            "QQQJA",
+            "KTJJT",
+        ]
+        pairs = list(zip(hands, hands[1:]))
+        for pair in pairs:
+            print(pair)
+            self.assertEqual(
+                WINNER_1,
+                part2(
+                    [
+                        (parse_hand(pair[0]), 5),
+                        (parse_hand(pair[1]), 1),
+                    ]
+                ),
+            )
 
 
 if __name__ == "__main__":
