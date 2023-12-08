@@ -95,7 +95,7 @@ class Tests(unittest.TestCase):
         self.assertEqual(6, part2(parse(example3)))
 
     def test_part2_answer(self):
-        self.assertEqual(-1, part2(parse(data)))
+        self.assertEqual(15995167053923, part2(parse(data)))
 
 
 if __name__ == "__main__":
