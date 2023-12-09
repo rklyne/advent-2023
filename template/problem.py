@@ -20,6 +20,9 @@ def part2(input: Input):
 
 
 class Tests(unittest.TestCase):
+    def test_parse(self):
+        self.assertEqual("-", parse(example))
+
     def test_part1_example_answer(self):
         self.assertEqual(-1, part1(parse(example)))
 
