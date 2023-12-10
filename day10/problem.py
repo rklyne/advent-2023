@@ -128,11 +128,12 @@ def find_loop(grid: Grid) -> Path:
             try:
                 pos = grid.move(pos, move)
             except KeyError:
-                # print(f"Can't move {move} from {pos}")
+                # If this pipe doesn't lead anywhere then it's wrong - move on
                 break
+            # record the cells we got to and the turns we took.
             loop.append((move, pos))
             if pos == start:
-                # print(f"a winner: {loop}")
+                # we got to the start - this is the loop
                 return loop
 
             reverse = inverse_direction(move)
@@ -184,7 +185,7 @@ def expanded_area(
             try:
                 new_cell = grid.move(cell, d)
             except KeyError:
-                # This is outside if we can move off the grid from here.
+                # If we can move off the grid from here then this can't be the inside.
                 return False, 0
             if not is_pipe(new_cell):
                 to_check.append(new_cell)
@@ -198,7 +199,7 @@ def part2(input: Input):
     loop = list(find_loop(grid))
     # print(len(loop))
     pipe_locations: set[Cell] = set(
-        [c for (m, c) in loop] + [(c[0], c[1], ".") for (m, c) in loop]
+        [c for (m, c) in loop]
     )
     grid = grid.remap(lambda c: c[CELL_ITEM] if c in pipe_locations else " ")
     area_l_starts = []
@@ -215,6 +216,8 @@ def part2(input: Input):
             lst.append(cell)
 
     for move, cell in loop:
+        # For each step of the pipe path the inside will either always be left or always be right.
+        # compute both and build a list of adjacent spaces on each side.
         count_cell(area_l_starts, cell, move, turn_left)
         count_cell(area_r_starts, cell, move, turn_right)
     answer = -100
@@ -233,11 +236,12 @@ def part2(input: Input):
         )
         # print(f"{is_inside}: {size}")
         if is_inside:
-            # print(
-            #     grid.remap(
-            #         lambda cell: ("#" if (cell in inside_cells) else cell[2])
-            #     ).to_string()
-            # )
+            # show the solution :)
+            print(
+                grid.remap(
+                    lambda cell: ("#" if (cell in inside_cells) else cell[2])
+                ).to_string()
+            )
             answer = len(inside_cells)
     return answer
 
