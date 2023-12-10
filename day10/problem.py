@@ -1,4 +1,4 @@
-from typing import Literal, Union, Iterable, Dict, Tuple
+from typing import Literal, Union, Iterable, Dict, Tuple, Callable
 import typing
 import unittest
 
@@ -56,11 +56,28 @@ class Grid:
     }
 
     def __init__(self, g: GridT):
+        self.w = len(g[0])
+        self.h = len(g)
         self._cells = {
             (row, col): self._make_cell(row, col, g[row][col])
             for row in rows(g)
             for col in cols(g)
         }
+
+    def remap(self, mapper: Callable[[Cell], Item]):
+        new_grid = Grid(self.to_gridt())
+        for key, cell in new_grid._cells.items():
+            new_grid._cells[key] = (key[0], key[1], mapper(cell))
+        return new_grid
+
+    def to_gridt(self) -> GridT:
+        return [
+            [self.get_cell(row, col)[CELL_ITEM] for col in range(self.w)]
+            for row in range(self.h)
+        ]
+
+    def to_string(self) -> str:
+        return "\n".join(["".join(row) for row in self.to_gridt()])
 
     def _make_cell(self, r: int, c: int, i: Item) -> Cell:
         return r, c, i
@@ -95,10 +112,7 @@ class Grid:
 
 
 def inverse_direction(m: Move) -> Move:
-    return {
-        UP: DOWN, DOWN: UP,
-        LEFT: RIGHT, RIGHT: LEFT
-    }[m]
+    return {UP: DOWN, DOWN: UP, LEFT: RIGHT, RIGHT: LEFT}[m]
 
 
 Path = list[Tuple[Move, Cell]]
@@ -106,12 +120,6 @@ Path = list[Tuple[Move, Cell]]
 
 def find_loop(grid: Grid) -> Path:
     start = grid.get_start()
-    directions: list[Move] = [
-        UP,
-        LEFT,
-        DOWN,
-        RIGHT,
-    ]
     for direction in directions:
         pos = start
         move = direction
@@ -120,7 +128,7 @@ def find_loop(grid: Grid) -> Path:
             try:
                 pos = grid.move(pos, move)
             except KeyError:
-                print(f"Can't move {move} from {pos}")
+                # print(f"Can't move {move} from {pos}")
                 break
             loop.append((move, pos))
             if pos == start:
@@ -143,12 +151,7 @@ def part1(input: Input):
     return len(loop) // 2
 
 
-left_turns: Dict[Move, Move] = {
-    LEFT: DOWN,
-    DOWN: RIGHT,
-    RIGHT: UP,
-    UP: LEFT
-}
+left_turns: Dict[Move, Move] = {LEFT: DOWN, DOWN: RIGHT, RIGHT: UP, UP: LEFT}
 right_turns: Dict[Move, Move] = {v: k for k, v in left_turns.items()}
 
 
@@ -163,7 +166,9 @@ def turn_right(move: Move) -> Move:
 directions: list[Move] = [UP, DOWN, LEFT, RIGHT]
 
 
-def expanded_area(grid: Grid, input_cells: list[Cell]) -> Tuple[bool, int]:
+def expanded_area(
+    grid: Grid, input_cells: list[Cell], is_pipe: Callable[[Cell], bool]
+) -> Tuple[bool, set[Cell]]:
     to_check: list[Cell] = input_cells[:]
     inside = set([])
     checks = 0
@@ -172,7 +177,7 @@ def expanded_area(grid: Grid, input_cells: list[Cell]) -> Tuple[bool, int]:
         if cell in inside:
             continue
         checks += 1
-        if cell[CELL_ITEM] != ".":
+        if is_pipe(cell):
             raise RuntimeError(cell)
         inside.add(cell)
         for d in directions:
@@ -181,54 +186,59 @@ def expanded_area(grid: Grid, input_cells: list[Cell]) -> Tuple[bool, int]:
             except KeyError:
                 # This is outside if we can move off the grid from here.
                 return False, 0
-            if new_cell[CELL_ITEM] == ".":
+            if not is_pipe(new_cell):
                 to_check.append(new_cell)
     # print(checks, len(cells), len(inside), inside)
-    print(f"did {checks} checks over {len(input_cells)} inputs")
-    return True, len(inside)
+    # print(f"did {checks} checks over {len(input_cells)} inputs")
+    return True, inside
 
 
 def part2(input: Input):
     grid = Grid(input)
     loop = list(find_loop(grid))
-    loop_cells = set(loop)
-    coords: set[Pos] = set([
-        (cell[CELL_ROW], cell[CELL_COL])
-        for (m, cell) in loop
-    ])
-    new_input = "\n".join([
-        item if (row, col) in coords else "."
-        for row, line in enumerate(input)
-        for col, item in enumerate(line)
-    ])
-    # grid = Grid(new_input)
+    # print(len(loop))
+    pipe_locations: set[Cell] = set(
+        [c for (m, c) in loop] + [(c[0], c[1], ".") for (m, c) in loop]
+    )
+    grid = grid.remap(lambda c: c[CELL_ITEM] if c in pipe_locations else " ")
     area_l_starts = []
     area_r_starts = []
-    for turn in [turn_left, turn_right]:
-        for move, cell in loop:
-            try:
-                l_cell = grid.move(cell, turn_left(move))
-            except KeyError:
-                continue
-            else:
-                if l_cell[CELL_ITEM] == ".":
-                    area_l_starts.append(l_cell)
-            try:
-                r_cell = grid.move(cell, turn_right(move))
-            except KeyError:
-                continue
-            else:
-                if r_cell[CELL_ITEM] == ".":
-                    area_r_starts.append(r_cell)
+
+    def count_cell(lst, cell: Cell, move: Move, turn):
+        try:
+            cell = grid.move(cell, turn(move))
+            if cell in pipe_locations:
+                cell = grid.move(cell, turn(turn(move)))
+        except KeyError:
+            return
+        if cell not in pipe_locations:
+            lst.append(cell)
+
+    for move, cell in loop:
+        count_cell(area_l_starts, cell, move, turn_left)
+        count_cell(area_r_starts, cell, move, turn_right)
     answer = -100
-    for starts in [
-        area_r_starts,
-        area_l_starts,
+    for name, starts in [
+        ("right", area_r_starts,),
+        ("left", area_l_starts,)
     ]:
-        is_inside, size = expanded_area(grid, starts)
-        print(f"{is_inside}: {size}")
+        # print(name)
+        # print(
+        #     grid.remap(
+        #         lambda cell: ("#" if (cell in starts) else cell[2])
+        #     ).to_string()
+        # )
+        is_inside, inside_cells = expanded_area(
+            grid, starts, lambda i: i in pipe_locations
+        )
+        # print(f"{is_inside}: {size}")
         if is_inside:
-            answer = size
+            # print(
+            #     grid.remap(
+            #         lambda cell: ("#" if (cell in inside_cells) else cell[2])
+            #     ).to_string()
+            # )
+            answer = len(inside_cells)
     return answer
 
 
@@ -322,7 +332,19 @@ L7JLJL-JLJLJL--JLJ.L
         self.assertEqual(10, part2(parse(square)))
 
     def test_part2_answer(self):
-        self.assertEqual(-1, part2(parse(data)))
+        self.assertEqual(471, part2(parse(data)))
+
+    def test_part2_answer_test_1(self):
+        square = """
+........
+.F-7....
+.S7L--7.
+.FJ.F-J.
+.L-7L7..
+...L-J..
+........
+""".strip()
+        self.assertEqual(1, part2(parse(square)))
 
 
 if __name__ == "__main__":
