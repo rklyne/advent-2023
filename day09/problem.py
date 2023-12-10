@@ -1,5 +1,3 @@
-import typing
-from functools import reduce
 import unittest
 
 from data import data, example
@@ -22,23 +20,12 @@ def next_value(history: History) -> int:
     return sum(stack)
 
 
-def prev_value(history: History) -> int:
-    stack = []
-    line = history
-    while set(line) != set([0]):
-        stack.append(line[0])
-        line = [y - x for (x, y) in zip(line, line[1:])]
-    return reduce(
-        lambda x, acc: acc - x, reversed(stack)
-    )
-
-
 def part1(input: Input):
     return sum(map(next_value, input))
 
 
 def part2(input: Input):
-    return sum(map(prev_value, input))
+    return sum(map(next_value, [list(reversed(line)) for line in input]))
 
 
 class Tests(unittest.TestCase):
