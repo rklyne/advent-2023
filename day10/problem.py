@@ -195,13 +195,15 @@ def expanded_area(
 
 
 def part2(input: Input):
+    debugging = False
     grid = Grid(input)
     loop = list(find_loop(grid))
     # print(len(loop))
     pipe_locations: set[Cell] = set(
         [c for (m, c) in loop]
     )
-    grid = grid.remap(lambda c: c[CELL_ITEM] if c in pipe_locations else " ")
+    if debugging:
+        grid = grid.remap(lambda c: c[CELL_ITEM] if c in pipe_locations else " ")
     area_l_starts = []
     area_r_starts = []
 
@@ -225,23 +227,17 @@ def part2(input: Input):
         ("right", area_r_starts,),
         ("left", area_l_starts,)
     ]:
-        # print(name)
-        # print(
-        #     grid.remap(
-        #         lambda cell: ("#" if (cell in starts) else cell[2])
-        #     ).to_string()
-        # )
         is_inside, inside_cells = expanded_area(
             grid, starts, lambda i: i in pipe_locations
         )
-        # print(f"{is_inside}: {size}")
         if is_inside:
             # show the solution :)
-            print(
-                grid.remap(
-                    lambda cell: ("#" if (cell in inside_cells) else cell[2])
-                ).to_string()
-            )
+            if debugging:
+                print(
+                    grid.remap(
+                        lambda cell: ("#" if (cell in inside_cells) else cell[2])
+                    ).to_string()
+                )
             answer = len(inside_cells)
     return answer
 
