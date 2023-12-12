@@ -2,7 +2,6 @@ from typing import Tuple, Dict, Iterable, Literal
 from functools import lru_cache
 import typing
 import unittest
-import re
 
 from data import data, example
 
@@ -13,36 +12,6 @@ Input = list[Tuple[str, list[int]]]
 def parse(input: str) -> Input:
     lines = [l.split(" ", 1) for l in input.split("\n")]
     return [(t, list(map(int, ns.split(",")))) for t, ns in lines]
-
-
-def perm(line: str) -> Iterable[str]:
-    qs = line.count("?")
-    for i in range(2**qs):
-        l: str = line
-        while i:
-            if i & 1:
-                l = l.replace("?", "#", 1)
-            else:
-                l = l.replace("?", ".", 1)
-            i >>= 1
-        yield l.replace("?", ".")
-
-
-def match_count_regex(line: str, nums: list[int]) -> int:
-    ROCK = lambda n: f"[#]{{{n}}}"
-    ANY_SPACE = re.escape("?") + "*"
-    expr_str = "^" + "".join([ANY_SPACE + ROCK(n) for n in nums]) + ANY_SPACE + "$"
-    expr = re.compile(expr_str)
-    print(expr_str)
-    total = 0
-    for l in perm(line):
-        if expr.match(l):
-            print(f"GET {line} -> {l}")
-            total += 1
-        else:
-            print(f"try {line} -> {l}")
-    print(f" line: {line} nums: {nums} total: {total}")
-    return total
 
 
 maybe_rock = "#?"
@@ -60,7 +29,7 @@ def all_rock(s: str) -> bool:
 
 
 @lru_cache
-def match_count(line: str, nums: Iterable[int]) -> int:
+def match_count(line: str, nums: Tuple[int]) -> int:
     if not nums:
         return 1 if all_gap(line) else 0
     if sum(nums) + len(nums) >= len(line):
