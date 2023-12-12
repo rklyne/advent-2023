@@ -49,17 +49,17 @@ maybe_rock = "#?"
 maybe_gap = ".?"
 
 
-@lru_cache(1000000000)
+@lru_cache(8000)
 def all_gap(s: str) -> bool:
     return all(c in maybe_gap for c in s)
 
 
-@lru_cache(1000000000)
+@lru_cache(1000)
 def all_rock(s: str) -> bool:
     return all(c in maybe_rock for c in s)
 
 
-@lru_cache(1000000)
+@lru_cache
 def match_count(line: str, nums: Iterable[int]) -> int:
     if not nums:
         return 1 if all_gap(line) else 0
@@ -75,11 +75,6 @@ def match_count(line: str, nums: Iterable[int]) -> int:
         if all_rock(line[: nums[0]]):
             total += match_count(line[nums[0]:], nums[1:])
     if line[0] in maybe_gap:
-        next_step = 9999
-        for c in maybe_rock:
-            f = line.find(c)
-            if f != -1 and f < next_step:
-                next_step = f
         total += match_count(line, nums)
     return total
 
