@@ -28,13 +28,38 @@ build_valid_sections_set()
 
 
 def is_mirrored(board: Board, reflect: int):
-    return all(
-        l == r
-        for l, r in zip(reversed(line[:reflect]), line[reflect])
-        for line in board
-    )
 
-def find_reflection(board: Board):
+    lines_1 = board[:reflect]
+    lines_2 = board[reflect:]
+
+    pairs = list(zip(reversed(lines_1), lines_2))
+    is_it = all(l == r for l, r in pairs)
+    if is_it and False:
+        print(is_it, pairs, reflect, board)
+    return is_it
+
+
+def find_reflection1(board: Board):
+    def find(line: str, start: int) -> Optional[int]:
+        try:
+            return board.index(line, start + 1) - start
+        except ValueError:
+            return None
+
+    MAX = len(board)
+    options = []
+    for possible in range(1, MAX):
+        reflect_line = possible
+        match_length = min(reflect_line, MAX - reflect_line)
+        if is_mirrored(board, reflect_line):
+            options.append((match_length, reflect_line))
+    options = sorted(options)
+    if options:
+        print(f"opts: {options}")
+        return sorted(options)[-1][1]
+
+
+def find_reflection2(board: Board):
     def find(line: str, start: int) -> Optional[int]:
         try:
             return board.index(line, start + 1) - start
@@ -59,6 +84,9 @@ def find_reflection(board: Board):
     if options:
         print(f"opts: {options}")
         return sorted(options)[-1][1]
+
+
+find_reflection = find_reflection1
 
 
 def transpose_board(board: Board) -> Board:
@@ -111,8 +139,8 @@ class Tests(unittest.TestCase):
 ......####.....
 """.strip()
         parsed = parse(board)
-        # new = [''.join(reversed(line)) for line in parsed[0]]
         self.assertEqual(8, part1(parsed))
+        self.assertEqual(800, part1(map(transpose_board, parsed)))
 
     def test_puzzle_board_2(self):
         board = """
@@ -121,8 +149,8 @@ class Tests(unittest.TestCase):
 ...............
 """.strip()
         parsed = parse(board)
-        # new = [''.join(reversed(line)) for line in parsed[0]]
-        self.assertEqual(1, part1(parsed))
+        self.assertEqual(8, part1(parsed))
+        self.assertEqual(800, part1(map(transpose_board, parsed)))
 
     def test_puzzle_board_3(self):
         board = """
@@ -138,7 +166,27 @@ class Tests(unittest.TestCase):
 """.strip()
         parsed = parse(board)
         # new = [''.join(reversed(line)) for line in parsed[0]]
-        self.assertEqual(800, part1(parsed))
+        self.assertEqual(8, part1(parsed))
+        self.assertEqual(800, part1(map(transpose_board, parsed)))
+
+    def test_puzzle_board_4(self):
+        board = """
+..##...####..
+##.###..##..#
+..#..##.#####
+..#.#########
+...#.#.#..#.#
+...##..#..#..
+....##.####.#
+..#.##.#..#.#
+...##########
+..##.###..###
+####.#..##..#
+""".strip()
+        parsed = parse(board)
+        # new = [''.join(reversed(line)) for line in parsed[0]]
+        self.assertEqual(8, part1(parsed))
+        self.assertEqual(800, part1(map(transpose_board, parsed)))
 
     def test_part1_example_answer(self):
         self.assertEqual(405, part1(parse(example)))
@@ -148,7 +196,7 @@ class Tests(unittest.TestCase):
         # 25668 too low
         # 32139 too low
         # 33155 wrong
-        self.assertEqual(-1, part1(parse(data)))
+        self.assertEqual(33780, part1(parse(data)))
 
     def test_part2_example_answer(self):
         self.assertEqual(-1, part2(parse(example)))
