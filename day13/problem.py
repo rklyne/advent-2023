@@ -14,19 +14,6 @@ def parse(input: str) -> Input:
     return [board.split("\n") for board in input.split("\n\n")]
 
 
-valid_sections = set()
-
-
-def build_valid_sections_set():
-    v = []
-    for i in range(1, 50, 2):
-        v.insert(0, i)
-        valid_sections.add(tuple(v))
-
-
-build_valid_sections_set()
-
-
 def is_mirrored(board: Board, reflect: int):
 
     lines_1 = board[:reflect]
@@ -34,8 +21,6 @@ def is_mirrored(board: Board, reflect: int):
 
     pairs = list(zip(reversed(lines_1), lines_2))
     is_it = all(l == r for l, r in pairs)
-    if is_it and False:
-        print(is_it, pairs, reflect, board)
     return is_it
 
 
@@ -49,7 +34,7 @@ def is_nearly_mirrored(board: Board, reflect: int):
     return mismatches == 1
 
 
-def find_reflection1(board: Board, is_mirrored=is_mirrored):
+def find_reflection1(board: Board, is_mirrored=is_mirrored) -> int:
     def find(line: str, start: int) -> Optional[int]:
         try:
             return board.index(line, start + 1) - start
@@ -65,11 +50,10 @@ def find_reflection1(board: Board, is_mirrored=is_mirrored):
             options.append((match_length, reflect_line))
     options = sorted(options)
     if options:
-        # print(f"opts: {options}")
-        return sorted(options)[-1][1]
+        return options[-1][1]
 
 
-def find_reflection2(board):
+def find_reflection2(board: Board) -> int:
     return find_reflection1(board, is_nearly_mirrored)
 
 
