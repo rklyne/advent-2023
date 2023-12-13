@@ -39,7 +39,17 @@ def is_mirrored(board: Board, reflect: int):
     return is_it
 
 
-def find_reflection1(board: Board):
+def is_nearly_mirrored(board: Board, reflect: int):
+
+    lines_1 = board[:reflect]
+    lines_2 = board[reflect:]
+
+    pairs = list(zip(reversed(lines_1), lines_2))
+    mismatches = sum(1 if l != r else 0 for line1, line2 in pairs for l, r in zip(line1, line2))
+    return mismatches == 1
+
+
+def find_reflection1(board: Board, is_mirrored=is_mirrored):
     def find(line: str, start: int) -> Optional[int]:
         try:
             return board.index(line, start + 1) - start
@@ -55,38 +65,12 @@ def find_reflection1(board: Board):
             options.append((match_length, reflect_line))
     options = sorted(options)
     if options:
-        print(f"opts: {options}")
+        # print(f"opts: {options}")
         return sorted(options)[-1][1]
 
 
-def find_reflection2(board: Board):
-    def find(line: str, start: int) -> Optional[int]:
-        try:
-            return board.index(line, start + 1) - start
-        except ValueError:
-            return None
-
-    matching_lines = [find(line, idx) for idx, line in enumerate(board)]
-    options = []
-    for possible in [idx for idx, n in enumerate(matching_lines) if n == 1]:
-        reflect_line = possible + 1
-        # TODO: something goes wrong with finding the match section
-        match_length = min(reflect_line, len(matching_lines) - reflect_line)
-        match_start = reflect_line - match_length
-        if reflect_line < match_length:
-            match_start = 0
-        match_section = matching_lines[match_start : reflect_line]
-        is_contiguous = tuple(match_section) in valid_sections
-        print((reflect_line, len(match_section), match_length), matching_lines, match_section)
-        if is_contiguous:
-            options.append((match_length, reflect_line))
-    options = sorted(options)
-    if options:
-        print(f"opts: {options}")
-        return sorted(options)[-1][1]
-
-
-find_reflection = find_reflection1
+def find_reflection2(board):
+    return find_reflection1(board, is_nearly_mirrored)
 
 
 def transpose_board(board: Board) -> Board:
@@ -94,24 +78,17 @@ def transpose_board(board: Board) -> Board:
 
 
 def part1(boards: Input):
-    horiz = list(map(find_reflection, boards))
+    horiz = list(map(find_reflection1, boards))
     transposed_boards = list(map(transpose_board, boards))
-    vert = list(map(find_reflection, transposed_boards))
-    pairs = list(zip(*(horiz, vert)))
-    for i, (h, v) in enumerate(pairs):
-        if h is None and v is None:
-            print(i)
-            print("****")
-            print("\n".join(boards[i]))
-            print("****")
-            print("\n".join(transposed_boards[i]))
-            print("****")
-    print(f"x: {pairs}")
+    vert = list(map(find_reflection1, transposed_boards))
     return (100 * sum(filter(bool, horiz))) + sum(filter(bool, vert))
 
 
-def part2(input: Input):
-    return 0
+def part2(boards: Input):
+    horiz = list(map(find_reflection2, boards))
+    transposed_boards = list(map(transpose_board, boards))
+    vert = list(map(find_reflection2, transposed_boards))
+    return (100 * sum(filter(bool, horiz))) + sum(filter(bool, vert))
 
 
 class Tests(unittest.TestCase):
@@ -185,8 +162,8 @@ class Tests(unittest.TestCase):
 """.strip()
         parsed = parse(board)
         # new = [''.join(reversed(line)) for line in parsed[0]]
-        self.assertEqual(8, part1(parsed))
-        self.assertEqual(800, part1(map(transpose_board, parsed)))
+        self.assertEqual(1, part1(parsed))
+        self.assertEqual(100, part1(map(transpose_board, parsed)))
 
     def test_part1_example_answer(self):
         self.assertEqual(405, part1(parse(example)))
@@ -199,10 +176,10 @@ class Tests(unittest.TestCase):
         self.assertEqual(33780, part1(parse(data)))
 
     def test_part2_example_answer(self):
-        self.assertEqual(-1, part2(parse(example)))
+        self.assertEqual(400, part2(parse(example)))
 
     def test_part2_answer(self):
-        self.assertEqual(-1, part2(parse(data)))
+        self.assertEqual(23479, part2(parse(data)))
 
 
 if __name__ == "__main__":
