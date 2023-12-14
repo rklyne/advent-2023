@@ -73,12 +73,10 @@ def part2(input: Input):
         boards.append(board)
 
     # hit a loop, now expand
-
     loop_length = list(reversed(boards)).index(board) + 1
     loop_start = len(boards) - loop_length + 1
     extra_cycles = (MAX - loop_start) % loop_length
-    for i in range(extra_cycles):
-        board = do_cycle(board)
+    board = boards[loop_start + extra_cycles - 1]
 
     return board_score(board)
 
