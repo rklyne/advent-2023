@@ -49,13 +49,13 @@ def print_energy(board: BoardIn, energised: set[Coord]):
 
 
 def part1(board: Input):
-    return get_energy(board, [((0, 0), "R")])
+    return get_energy(board, ((0, 0), "R"))
 
 
-def get_energy(board: BoardIn, start: list[Beam]):
+def get_energy(board: BoardIn, start: Beam):
     energised: set[Coord] = set()
     seen: set[Beam] = set()
-    todo: list[Beam] = start[:]
+    todo: list[Beam] = [start]
     while todo:
         beam = todo.pop()
         if beam in seen:
@@ -110,7 +110,7 @@ def part2(board: Input):
         starts.append(((row, 0), "R"))
         starts.append(((row, max_col), "L"))
 
-    return max([get_energy(board, [start]) for start in starts])
+    return max([get_energy(board, start) for start in starts])
 
 
 class Tests(unittest.TestCase):
