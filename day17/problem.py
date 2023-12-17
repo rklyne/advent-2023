@@ -54,9 +54,11 @@ def part1(board: Input) -> int:
     destination = max_row - 1, max_col - 1
     heapq.heapify(to_search)
     cheapest_node_route: Dict[Node, Cost] = {}
-    best_yet = 99999999
-    best_solution = None
+    best_yet: Cost = 99999999
+    best_solution: Path = []
     tries = 0
+    solutions = 0
+    shortcuts = 0
 
     def make_move(current: SearchNode, d: Direction):
         _, cost, node, path = current
@@ -66,37 +68,41 @@ def part1(board: Input) -> int:
             return
         if new_pos[1] < 0 or new_pos[1] >= max_col:
             return
+        last_three_moves = [node[1] for node in path[-3:]]
+        if len(set(last_three_moves)) == 1 and last_three_moves[0] == d:
+            return
         new_tile = board[new_pos[0]][new_pos[1]]
         new_cost = new_tile + cost
         new_path = path[:] + [new_node]
-        new_search_node: SearchNode = (-new_cost, new_cost, new_node, new_path)
+        priority = new_cost
+        new_search_node: SearchNode = (priority, new_cost, new_node, new_path)
         heapq.heappush(to_search, new_search_node)
 
     while to_search:
         tries += 1
         search_node = heapq.heappop(to_search)
         _, cost, node, path = search_node
-        if tries >= 400000:
+        if tries >= 2800000:
             print("OVERFLOW")
             break
         if node in cheapest_node_route and cheapest_node_route[node] < cost:
-            # raise RuntimeError("shortcut")
+            shortcuts += 1
             continue
         cheapest_node_route[node] = cost
         pos, facing = node
         if pos == destination:
+            solutions += 1
             if cost < best_yet:
                 best_yet = cost
                 best_solution = path
             continue
         make_move(search_node, facing)
-        make_move(search_node, L)
-        make_move(search_node, R)
-        # TODO: no three in a row.
+        make_move(search_node, turn_left[facing])
+        make_move(search_node, turn_right[facing])
 
     # print(f"{best_yet} ({tries}): {best_solution}")
     # print(f"debug: {len(cheapest_node_route)}")
-    print(f"PATH: {[(board[n[0]][n[1]], n) for n, _ in best_solution]}")
+    print(f"PATH {best_yet} ({solutions}/{shortcuts}): {[(board[n[0]][n[1]], d) for n, d in best_solution]}")
     return best_yet
 
 
@@ -105,16 +111,21 @@ def part2(input: Input):
 
 
 TINY1 = """
-22
-62
+222
+222
+622
 """.strip()
+
 
 class Tests(unittest.TestCase):
     def test_parse(self):
         self.assertEqual([2, 4, 1, 3, 4, 3, 2, 3, 1, 1, 3, 2, 3], parse(example)[0])
 
+    def test_move(self):
+        self.assertEqual(((0, 1), R), move(((0, 0), D), R))
+
     def test_part1_a_tiny_1(self):
-        self.assertEqual(4, part1(parse(TINY1)))
+        self.assertEqual(8, part1(parse(TINY1)))
 
     def test_part1_example_answer(self):
         self.assertEqual(102, part1(parse(example)))
