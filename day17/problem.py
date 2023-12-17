@@ -186,7 +186,7 @@ class Tests(unittest.TestCase):
         self.assertEqual(94, part2(parse(example)))
 
     def test_part2_real_answer(self):
-        self.assertEqual(-1, part2(parse(data)))
+        self.assertEqual(1389, part2(parse(data)))
 
 
 if __name__ == "__main__":
