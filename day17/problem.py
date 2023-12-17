@@ -85,7 +85,7 @@ def part1(board: Input) -> int:
         new_tile = board[new_pos[0]][new_pos[1]]
         new_cost = new_tile + cost
         new_path = path[:] + [new_node]
-        priority = new_cost + heuristic(new_pos)
+        priority = new_cost
         new_search_node: SearchNode = (priority, new_cost, new_node, new_path)
         heapq.heappush(to_search, new_search_node)
 
@@ -95,7 +95,7 @@ def part1(board: Input) -> int:
         _, cost, node, path = search_node
         if cost > 1262:
             continue
-        if tries >= 400000:
+        if tries >= 800000:
             print("OVERFLOW")
             break
         path_len = 0
@@ -109,7 +109,7 @@ def part1(board: Input) -> int:
                 continue
         # cache_key = (path_len, node)
         cache_key = node
-        if path_len < 2:
+        if path_len < 1:
             cheapest = cheapest_node_route.get(cache_key, MAX_COST)
             if cheapest <= cost:
                 shortcuts += 1
@@ -133,6 +133,7 @@ def part1(board: Input) -> int:
     # print(
     #     f"PATH NAME {best_yet} ({solutions}/{shortcuts}/{tries}): {''.join(dir_names[d] for n, d in best_solution)}"
     # )
+
     return best_yet
 
 
@@ -165,7 +166,7 @@ class Tests(unittest.TestCase):
         # wrong - 1258
         # too high 1262
         # too high 1287
-        self.assertEqual(-1, part1(parse(data)))
+        self.assertEqual(1246, part1(parse(data)))
 
     def test_part2_example_answer(self):
         self.assertEqual(-1, part2(parse(example)))
