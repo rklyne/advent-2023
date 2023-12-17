@@ -51,6 +51,10 @@ def move(node: Node, d: Direction) -> Node:
 
 
 def part1(board: Input) -> int:
+    return find_cost(board, 1, 3)
+
+
+def find_cost(board: Input, min_straight_line: int, max_straight_line: int, LIMIT: int = 800000, PRINT: bool = False) -> int:
     to_search: list[SearchNode] = [
         (0, 0, ((0, 0), R), []),
         (0, 0, ((0, 0), D), []),
@@ -72,8 +76,8 @@ def part1(board: Input) -> int:
 
     def make_move(current: SearchNode, d: Direction):
         _, cost, node, path = current
-        last_three_moves = [node[1] for node in path[-3:]]
-        if last_three_moves == [d] * 3:
+        last_three_moves = [node[1] for node in path[-max_straight_line:]]
+        if last_three_moves == [d] * max_straight_line:
             # If we did 3 moves in this direction then we can't do another
             return
         new_node = move(node, d)  # forward
@@ -93,9 +97,7 @@ def part1(board: Input) -> int:
         tries += 1
         search_node = heapq.heappop(to_search)
         _, cost, node, path = search_node
-        if cost > 1262:
-            continue
-        if tries >= 800000:
+        if tries >= LIMIT:
             print("OVERFLOW")
             break
         path_len = 0
@@ -105,7 +107,7 @@ def part1(board: Input) -> int:
                 if n[1] != d:
                     break
                 path_len += 1
-            if path_len > 3:
+            if path_len > max_straight_line:
                 continue
         # cache_key = (path_len, node)
         cache_key = node
@@ -116,29 +118,31 @@ def part1(board: Input) -> int:
                 continue
             cheapest_node_route[node] = cost + path_len
         pos, facing = node
-        if pos == destination:
+        if pos == destination and (path_len + 1 >= min_straight_line):
             solutions += 1
             if cost < best_yet:
                 best_yet = cost
                 best_solution = path
             continue
         make_move(search_node, facing)
-        make_move(search_node, turn_left[facing])
-        make_move(search_node, turn_right[facing])
+        if path_len + 1 >= min_straight_line:
+            make_move(search_node, turn_left[facing])
+            make_move(search_node, turn_right[facing])
 
     # print(f"{best_yet} ({tries}): {best_solution}")
     # print(f"debug: {len(cheapest_node_route)}")
     # print(f"PATH {best_yet} ({solutions}/{shortcuts}): {[(board[n[0]][n[1]], d) for n, d in best_solution]}")
     # print(f"SUM {best_yet} ({solutions}/{shortcuts}): {sum([board[n[0]][n[1]] for n, _ in best_solution])}")
-    # print(
-    #     f"PATH NAME {best_yet} ({solutions}/{shortcuts}/{tries}): {''.join(dir_names[d] for n, d in best_solution)}"
-    # )
+    if PRINT:
+        print(
+            f"PATH NAME {best_yet} ({solutions}/{shortcuts}/{tries}): {''.join(dir_names[d] for n, d in best_solution)}"
+        )
 
     return best_yet
 
 
-def part2(input: Input):
-    return 0
+def part2(board: Input):
+    return find_cost(board, 4, 10, LIMIT=2_000_000, PRINT=True)
 
 
 TINY1 = """
@@ -147,6 +151,13 @@ TINY1 = """
 622
 """.strip()
 
+SILLY1 = """
+111111111111
+999999999991
+999999999991
+999999999991
+999999999991
+""".strip()
 
 class Tests(unittest.TestCase):
     def test_parse(self):
@@ -168,10 +179,12 @@ class Tests(unittest.TestCase):
         # too high 1287
         self.assertEqual(1246, part1(parse(data)))
 
-    def test_part2_example_answer(self):
-        self.assertEqual(-1, part2(parse(example)))
+    def test_part1_a_silly_1(self):
+        self.assertEqual(71, part2(parse(SILLY1)))
 
-    @unittest.skip
+    def test_part2_example_answer(self):
+        self.assertEqual(94, part2(parse(example)))
+
     def test_part2_real_answer(self):
         self.assertEqual(-1, part2(parse(data)))
 
