@@ -31,6 +31,12 @@ turn_left = {
     U: L,
 }
 turn_right = {v: k for k, v in turn_left.items()}
+dir_names: Dict[Direction, str] = {
+    L: "L",
+    D: "d",
+    R: "R",
+    U: "U",
+}
 
 
 def move(node: Node, d: Direction) -> Node:
@@ -54,27 +60,32 @@ def part1(board: Input) -> int:
     destination = max_row - 1, max_col - 1
     heapq.heapify(to_search)
     cheapest_node_route: Dict[Node, Cost] = {}
-    best_yet: Cost = 99999999
+    MAX_COST = 99999999
+    best_yet: Cost = MAX_COST
     best_solution: Path = []
     tries = 0
     solutions = 0
     shortcuts = 0
 
+    def heuristic(pos: Coord):
+        return (destination[0] - pos[0]) + (destination[1] - pos[1])
+
     def make_move(current: SearchNode, d: Direction):
         _, cost, node, path = current
+        last_three_moves = [node[1] for node in path[-3:]]
+        if last_three_moves == [d] * 3:
+            # If we did 3 moves in this direction then we can't do another
+            return
         new_node = move(node, d)  # forward
         new_pos = new_node[0]
         if new_pos[0] < 0 or new_pos[0] >= max_row:
             return
         if new_pos[1] < 0 or new_pos[1] >= max_col:
             return
-        last_three_moves = [node[1] for node in path[-3:]]
-        if len(set(last_three_moves)) == 1 and last_three_moves[0] == d:
-            return
         new_tile = board[new_pos[0]][new_pos[1]]
         new_cost = new_tile + cost
         new_path = path[:] + [new_node]
-        priority = new_cost
+        priority = new_cost + heuristic(new_pos)
         new_search_node: SearchNode = (priority, new_cost, new_node, new_path)
         heapq.heappush(to_search, new_search_node)
 
@@ -82,13 +93,28 @@ def part1(board: Input) -> int:
         tries += 1
         search_node = heapq.heappop(to_search)
         _, cost, node, path = search_node
-        if tries >= 2800000:
+        if cost > 1262:
+            continue
+        if tries >= 400000:
             print("OVERFLOW")
             break
-        if node in cheapest_node_route and cheapest_node_route[node] < cost:
-            shortcuts += 1
-            continue
-        cheapest_node_route[node] = cost
+        path_len = 0
+        if path:
+            d = path[-1][1]
+            for n in reversed(path[:-1]):
+                if n[1] != d:
+                    break
+                path_len += 1
+            if path_len > 3:
+                continue
+        # cache_key = (path_len, node)
+        cache_key = node
+        if path_len < 2:
+            cheapest = cheapest_node_route.get(cache_key, MAX_COST)
+            if cheapest <= cost:
+                shortcuts += 1
+                continue
+            cheapest_node_route[node] = cost + path_len
         pos, facing = node
         if pos == destination:
             solutions += 1
@@ -102,7 +128,11 @@ def part1(board: Input) -> int:
 
     # print(f"{best_yet} ({tries}): {best_solution}")
     # print(f"debug: {len(cheapest_node_route)}")
-    print(f"PATH {best_yet} ({solutions}/{shortcuts}): {[(board[n[0]][n[1]], d) for n, d in best_solution]}")
+    # print(f"PATH {best_yet} ({solutions}/{shortcuts}): {[(board[n[0]][n[1]], d) for n, d in best_solution]}")
+    # print(f"SUM {best_yet} ({solutions}/{shortcuts}): {sum([board[n[0]][n[1]] for n, _ in best_solution])}")
+    # print(
+    #     f"PATH NAME {best_yet} ({solutions}/{shortcuts}/{tries}): {''.join(dir_names[d] for n, d in best_solution)}"
+    # )
     return best_yet
 
 
@@ -130,8 +160,11 @@ class Tests(unittest.TestCase):
     def test_part1_example_answer(self):
         self.assertEqual(102, part1(parse(example)))
 
-    @unittest.skip
     def test_part1_real_answer(self):
+        # too low 1226
+        # wrong - 1258
+        # too high 1262
+        # too high 1287
         self.assertEqual(-1, part1(parse(data)))
 
     def test_part2_example_answer(self):
