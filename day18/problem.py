@@ -130,9 +130,16 @@ def colour_instr(c):
     return (dmap[c[5]], int(c[:5], 16), "")
 
 
-def get_size(box):
+def get_perimeter(box, pad=0):
     tl, br = box
-    return abs((br[0] - tl[0] + 1) * (br[1] - tl[1] + 1))
+    height = br[0] - tl[0]
+    width = br[1] - tl[1]
+    return 2 * (height + width)
+
+
+def get_size(box, pad=0):
+    tl, br = box
+    return abs((br[0] - tl[0] + pad) * (br[1] - tl[1] + pad))
 
 
 def part2(input: Input):
@@ -140,7 +147,7 @@ def part2(input: Input):
     return algo2(input)
 
 
-def algo2(input: Input):
+def algo2(input: Input, DEBUG=False):
     pos: Coord = (0, 0)
     line = [pos]
     for i in input:
@@ -159,9 +166,8 @@ def algo2(input: Input):
     squares = [
         (
             (row_span[0], col_span[0]),
-            (row_span[1] - 1, col_span[1] - 1),
+            (row_span[1], col_span[1]),
         )
-        # TODO: maybe these need a swap?
         for row_span in zip(rows, rows[1:])
         for col_span in zip(cols, cols[1:])
     ]
@@ -174,11 +180,12 @@ def algo2(input: Input):
     total_size = 0
     included_squares = 0
     square_sizes = []
+    total_parts = []
     for square in squares:
         tl, br = square
-        square_size = get_size(square)
+        square_size = get_size(square, pad=0)
         square_sizes.append(square_size)
-        point = tl[0] + 1, tl[1] + 1
+        point = tl[0], tl[1]
         # count edges to the left
         crossed_edges = 0
         for edge in edges:
@@ -195,30 +202,66 @@ def algo2(input: Input):
                     # print(f"crossed {point[0]} ({edge_tl[0]}, {edge_br[0]})")
 
         if crossed_edges % 2 == 1:
-            total += square_size
+            total_parts.append(square_size)
             included_squares += 1
         total_size += square_size
+    total = sum(total_parts)
     # print(f"enclosed_size of {included_squares} squares: {total} / {total_size}")
-    # missing = 952408144115 - total
     # print(f"misssing {missing} -> {[s for s in square_sizes if s <= missing]}")
     edge_len = sum(map(get_size, edges))
+    edge_comp = sum([get_size(e) for e in edges if e[0][0] > e[1][0] or e[0][1] > e[1][1]])
     edge_len2 = (edge_len - len(edges)) // 2
     print(f"edges ({len(input)}.. {total}) len: {edge_len} {len(edges)}")
     height = maxs[0] - mins[0]
     width = maxs[1] - mins[1]
-    pprint(
-        {
-            "total": total,
-            "instructions": len(input),
-            "edge count": len(edges),
-            "edge_total_length": edge_len,
-            "edge adjusted lengt": edge_len2,
-            "mins": mins,
-            "maxs": maxs,
-            "board_size": (height, width),
-        }
+    top_lefts = sum([s for (d, s, _) in input if d in 'UR'])
+    if DEBUG:
+        pprint(
+            {
+                "total": total,
+                "instructions": len(input),
+                "edge count": len(edges),
+                "edge_total_length": edge_len,
+                "edge_ compensation": edge_comp,
+                "edge adjusted lengt": edge_len2,
+                "mins": mins,
+                "maxs": maxs,
+                "board_size": (height, width),
+                "parts": total_parts,
+                "square_count": len(squares),
+                "squares": squares,
+                "rows cols": (rows, cols),
+                "square sides": [get_perimeter(s) for s in squares],
+                "top_lefts": top_lefts,
+            }
     )
-    return total
+    return total + top_lefts + 1
+
+
+TINY1 = """
+R 2 #123123
+D 2 #123123
+L 2 #123123
+U 2 #123123
+""".strip()
+
+TINY2 = """
+R 1 #123123
+R 1 #123123
+D 2 #123123
+L 1 #123123
+L 1 #123123
+U 2 #123123
+""".strip()
+
+TINY3 = """
+R 2 #123123
+D 1 #123123
+D 1 #123123
+L 2 #123123
+U 1 #123123
+U 1 #123123
+""".strip()
 
 
 class Tests(unittest.TestCase):
@@ -232,12 +275,21 @@ class Tests(unittest.TestCase):
         self.assertEqual(("U", 829975, ""), colour_instr("caa173"))
 
     def test_get_size(self):
-        self.assertNumEqual(1, get_size(((0, 0), (0, 0))))
-        self.assertNumEqual(4, get_size(((0, 0), (1, 1))))
-        self.assertNumEqual(6, get_size(((0, 0), (0, 5))))
+        self.assertNumEqual(0, get_size(((0, 0), (0, 0))))
+        self.assertNumEqual(2, get_size(((0, 0), (1, 1))))
+        self.assertNumEqual(5, get_size(((0, 1), (0, 5))))
 
     def assertNumEqual(self, x, y):
         self.assertEqual(x, y, f"{x} != {y} ({y-x})")
+
+    def test_part1_example_tiny1(self):
+        self.assertNumEqual(9, part1(parse(TINY1)))
+
+    def test_part1_example_tiny2(self):
+        self.assertNumEqual(9, part1(parse(TINY2)))
+
+    def test_part1_example_tiny3(self):
+        self.assertNumEqual(9, part1(parse(TINY3)))
 
     def test_part1_example_answer(self):
         self.assertNumEqual(62, part1(parse(example)))
@@ -249,10 +301,10 @@ class Tests(unittest.TestCase):
     def test_part2_example_answer(self):
         self.assertNumEqual(952_408_144_115, part2(parse(example)))
 
-    @unittest.skip
+    # @unittest.skip
     def test_part2_answer(self):
         # too low 44644464596913
-        self.assertNumEqual(-1, part2(parse(data)))
+        self.assertNumEqual(44_644_464_596_918, part2(parse(data)))
 
 
 if __name__ == "__main__":
