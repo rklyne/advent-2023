@@ -211,7 +211,8 @@ def algo2(input: Input, DEBUG=False):
     edge_len = sum(map(get_size, edges))
     edge_comp = sum([get_size(e) for e in edges if e[0][0] > e[1][0] or e[0][1] > e[1][1]])
     edge_len2 = (edge_len - len(edges)) // 2
-    print(f"edges ({len(input)}.. {total}) len: {edge_len} {len(edges)}")
+    if DEBUG:
+        print(f"edges ({len(input)}.. {total}) len: {edge_len} {len(edges)}")
     height = maxs[0] - mins[0]
     width = maxs[1] - mins[1]
     top_lefts = sum([s for (d, s, _) in input if d in 'UR'])
@@ -275,9 +276,9 @@ class Tests(unittest.TestCase):
         self.assertEqual(("U", 829975, ""), colour_instr("caa173"))
 
     def test_get_size(self):
-        self.assertNumEqual(0, get_size(((0, 0), (0, 0))))
-        self.assertNumEqual(2, get_size(((0, 0), (1, 1))))
-        self.assertNumEqual(5, get_size(((0, 1), (0, 5))))
+        self.assertNumEqual(0, get_size(((0, 0), (1, 0))))
+        self.assertNumEqual(1, get_size(((0, 0), (1, 1))))
+        self.assertNumEqual(5, get_size(((0, 0), (1, 5))))
 
     def assertNumEqual(self, x, y):
         self.assertEqual(x, y, f"{x} != {y} ({y-x})")
