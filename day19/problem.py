@@ -79,10 +79,12 @@ class Computer:
         ]
         return self._paths_to('A', opts, start)
 
-    def _paths_to(self, target: Name, sets_in: list[set[int]], finish: Name):
-        print(f"_paths_to({target}, {[len(s) for s in sets_in]}, {finish})")
+    def _paths_to(self, target: Name, sets_in: list[set[int]], finish: Name, history=[]):
+        print(f">>> {history} + {target}\n  > _paths_to({target}, {[len(s) for s in sets_in]}, {finish})")
         if target == finish:
-            return reduce(operator.mul, list(map(len, sets_in)), 1)
+            amount = reduce(operator.mul, list(map(len, sets_in)), 1)
+            print(f"PART({history} {target}): {amount}")
+            return amount
         names = self._reversed_flows[target]
         # TODO:
         """
@@ -99,9 +101,10 @@ class Computer:
         for name in names:
             if name == "R":
                 continue
-            sets = sets_in
+            sets = sets_in[:]
             _, conds, default = self._flows[name]
-            for char, op, const, to in conds:
+            for cond in conds:
+                char, op, const, to = cond
                 cidx = self.letter_idx[char]
                 op_set = set(range(1, const))
                 neg_set = set(range(const+1, self.MAX))
@@ -109,12 +112,16 @@ class Computer:
                     op_set, neg_set = neg_set, op_set
                 if to == target:
                     new_sets = [(s.intersection(op_set) if i == cidx else s) for i, s in enumerate(sets)]
-                    total += self._paths_to(name, new_sets, finish)
+                    extra = self._paths_to(name, new_sets, finish, history + [target])
+                    print(f"CHOOSE({extra}): cond {cond}")
+                    total += extra
                     break
                 sets = [(s.intersection(neg_set) if i == cidx else s) for i, s in enumerate(sets)]
             else:
                 if default == target:
-                    total += self._paths_to(name, sets, finish)
+                    extra = self._paths_to(name, sets, finish, history + [target])
+                    print(f"CHOOSE({extra}): default {default}")
+                    total += extra
                 else:
                     raise RuntimeError(target, names, name, conds, default)
         return total
@@ -159,6 +166,9 @@ def part2(input: PuzzleInput):
 
 
 class Tests(unittest.TestCase):
+    def assertNumEqual(self, x, y):
+        self.assertEqual(x, y, f"{x} != {y} ({y-x})")
+
     def test_parse(self):
         self.assertEqual(
             ("px", [("a", "<", 2006, "qkq"), ("m", ">", 2090, "A")], "rfg"),
@@ -173,7 +183,7 @@ class Tests(unittest.TestCase):
         self.assertEqual(446517, part1(parse(data)))
 
     def test_part2_example_answer(self):
-        self.assertEqual(167409079868000, part2(parse(example)))
+        self.assertNumEqual(167409079868000, part2(parse(example)))
 
     @unittest.skip
     def test_part2_answer(self):
