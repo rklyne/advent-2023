@@ -1,5 +1,7 @@
 from typing import NamedTuple, Optional
 import typing
+from pprint import pprint
+import sympy
 import unittest
 
 from data import data, example
@@ -52,12 +54,16 @@ def sign(n: int) -> int:
     return n / abs(n)
 
 
-def is_forward(flake: Flake, coord: Coord) -> bool:
+def is_forward(flake: Flake, coord: Coord, include_z=False) -> bool:
     pos, speed = flake
     dx = sign(coord.x - pos.x) == sign(speed.x)
     dy = sign(coord.y - pos.y) == sign(speed.y)
+    if include_z:
+        dz = sign(coord.z - pos.z) == sign(speed.z)
+    else:
+        dz = True
     # print(f"{dx} & {dy}: {pos}@{speed} -> {coord}")
-    return dx and dy
+    return dx and dy and dz
 
 
 def part1(input: Input, in_range=(7, 27)):
@@ -81,7 +87,23 @@ def part1(input: Input, in_range=(7, 27)):
 
 
 def part2(input: Input):
-    return 0
+    px, py, pz, vx, vy, vz = sympy.symbols("px, py, pz, vx, vy, vz", real=True)
+    eqs = []
+    syms = [px, py, pz, vx, vy, vz]
+    for i, (pos, vec) in enumerate(input[:5], 1):
+        time = sympy.symbols(f"ta{i}", real=True)
+        syms.append(time)
+        eqs += [
+            sympy.Eq(px + time * vx, pos.x + time * vec.x),
+            sympy.Eq(py + time * vy, pos.y + time * vec.y),
+            sympy.Eq(pz + time * vz, pos.z + time * vec.z),
+        ]
+
+    pprint(eqs)
+    point = sympy.solve(eqs, syms)[0]
+    pprint(point)
+
+    return sum(point[:3])
 
 
 class Tests(unittest.TestCase):
@@ -93,10 +115,10 @@ class Tests(unittest.TestCase):
 
     # @unittest.skip
     def test_part1_answer(self):
-        self.assertEqual(-1, part1(parse(data), (200000000000000, 400000000000000)))
+        self.assertEqual(11098, part1(parse(data), (200000000000000, 400000000000000)))
 
     def test_part2_example_answer(self):
-        self.assertEqual(-1, part2(parse(example)))
+        self.assertEqual(47, part2(parse(example)))
 
     def test_part2_answer(self):
         self.assertEqual(-1, part2(parse(data)))
