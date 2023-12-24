@@ -48,7 +48,7 @@ def read_tile(tiles: Tiles, n: Node) -> str:
     return tiles[r][c]
 
 
-def make_graph(tiles: Tiles) -> Graph:
+def make_graph(tiles: Tiles, ignore_slopes: bool) -> Graph:
     Search = tuple[Node, int, Node, bool]
     walks: list[Search] = [(START, 0, START, False)]
     seen: set[Node] = set()
@@ -70,6 +70,11 @@ def make_graph(tiles: Tiles) -> Graph:
         "^": lambda a, b: a[0] > b[0],
         ".": lambda a, b: True,
     }
+    if ignore_slopes:
+        next_validator[">"] = next_validator["."]
+        next_validator["<"] = next_validator["."]
+        next_validator["^"] = next_validator["."]
+        next_validator["v"] = next_validator["."]
     END = (len(tiles) - 1, len(tiles[0]) - 2)
     all_tiles = [(r, c) for r in range(0, len(tiles)) for c in range(0, len(tiles[0]))]
     junctions = set([
@@ -89,7 +94,7 @@ def make_graph(tiles: Tiles) -> Graph:
         search_node = walks.pop()
         start, cost, prev, one_way = search_node
         tile = read_tile(tiles, prev)
-        if tile in "<>v^":
+        if tile in "<>v^" and not ignore_slopes:
             one_way = True
         if prev in junctions and prev != start:
             edges.append((start, prev, cost))
@@ -108,12 +113,12 @@ def make_graph(tiles: Tiles) -> Graph:
                 next_tile = read_tile(tiles, n)
                 if next_validator[next_tile](prev, n):
                     walks.append((start, cost + 1, n, one_way))
-    pprint({"graph_size": len(edges), "graph": edges, "E": END})
+    # pprint({"graph_size": len(edges), "graph": edges, "E": END})
     return edges
 
 
-def part1(input: Input):
-    graph = make_graph(input)
+def part1(input: Input, ignore_slopes=False):
+    graph = make_graph(input, ignore_slopes)
     END = (len(input) - 1, len(input[0]) - 2)
     best = 0
     route_count = 0
@@ -154,7 +159,7 @@ def part1(input: Input):
 
 
 def part2(input: Input):
-    return 0
+    return part1(input, True)
 
 
 class Tests(unittest.TestCase):
@@ -162,7 +167,7 @@ class Tests(unittest.TestCase):
         self.assertEqual("#.......#########...###", parse(example)[1])
 
     def test_graph(self):
-        graph = make_graph(parse(example))
+        graph = make_graph(parse(example), False)
         self.assertIn(((0, 1), (5, 3), 15), graph)
         self.assertIn(((5, 3), (3, 11), 22), graph)
 
@@ -170,15 +175,14 @@ class Tests(unittest.TestCase):
         self.assertEqual(94, part1(parse(example)))
 
     def test_part1_answer(self):
-        self.assertEqual(-1, part1(parse(data)))
+        self.assertEqual(2154, part1(parse(data)))
 
-    @unittest.skip
     def test_part2_example_answer(self):
-        self.assertEqual(-1, part2(parse(example)))
+        self.assertEqual(154, part2(parse(example)))
 
-    @unittest.skip
     def test_part2_answer(self):
-        self.assertEqual(-1, part2(parse(data)))
+        # This takes 4-5 minutes on my data. Could be better.
+        self.assertEqual(6654, part2(parse(data)))
 
 
 if __name__ == "__main__":
