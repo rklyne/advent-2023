@@ -83,11 +83,10 @@ class BlockSpace:
         candidates = set()
         block = self._blocks[block_id]
         block_top = max(block[0].z, block[1].z)
-        for x in range(0, self.maxx):
-            for y in range(0, self.maxy):
+        for x in range(0, self.maxx + 1):
+            for y in range(0, self.maxy + 1):
                 candidates.add(self._space[x][y][block_top + 1])
         candidates.difference_update([0])
-        # candidates = set(self._blocks.keys())
         for other_id in candidates:
             other_block = self._blocks[other_id]
             if self._block_fall_dist(other_block, ignore.union(set([other_id]))) != 0:
@@ -177,14 +176,16 @@ class Tests(unittest.TestCase):
     def test_parse(self):
         self.assertEqual(((1, 0, 1), (1, 2, 1)), parse(example)[0])
 
+    # @unittest.skip
     def test_part1_example_answer(self):
         self.assertEqual(5, part1(parse(example)))
 
     # @unittest.skip
     def test_part1_answer(self):
         # 544 too high
-        self.assertEqual(-1, part1(parse(data)))
+        self.assertEqual(451, part1(parse(data)))
 
+    @unittest.skip
     def test_part2_example_answer(self):
         self.assertEqual(-1, part2(parse(example)))
 
