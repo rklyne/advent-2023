@@ -50,7 +50,7 @@ def read_tile(tiles: Tiles, n: Node) -> str:
 
 def make_graph(tiles: Tiles) -> Graph:
     Search = tuple[Node, int, Node, bool]
-    walks: list[Search] = [(START, 0, START, True)]
+    walks: list[Search] = [(START, 0, START, False)]
     seen: set[Node] = set()
     rocks: set[Node] = set(
         [
@@ -64,31 +64,51 @@ def make_graph(tiles: Tiles) -> Graph:
 
     next_validator: Dict[str, Callable[[Node, Node], bool]] = {
         # TODO: maybe "<" instead of "<=" ?
-        ">": lambda a, b: a[1] <= b[1],
-        "<": lambda a, b: a[1] >= b[1],
-        "v": lambda a, b: a[0] <= b[0],
-        "^": lambda a, b: a[0] >= b[0],
+        ">": lambda a, b: a[1] < b[1],
+        "<": lambda a, b: a[1] > b[1],
+        "v": lambda a, b: a[0] < b[0],
+        "^": lambda a, b: a[0] > b[0],
         ".": lambda a, b: True,
     }
+    END = (len(tiles) - 1, len(tiles[0]) - 2)
+    all_tiles = [(r, c) for r in range(0, len(tiles)) for c in range(0, len(tiles[0]))]
+    junctions = set([
+        node for node in all_tiles
+        if node not in rocks
+        if len(adjacent(node).difference(rocks)) != 2
+    ] + [START, END])
+    for junction in junctions:
+        for n in clamp_to_grid(tiles, adjacent(junction).difference(rocks)):
+            next_tile = read_tile(tiles, n)
+            if next_validator[next_tile](junction, n):
+                walks.append((junction, 1, n, False))
+    ISSUE = (5, 3)
     while walks:
-        start, cost, prev, one_way = walks.pop()
-        seen.add(prev)
+        if len(walks) >= 1000:
+            raise RuntimeError("overflow graph building")
+        search_node = walks.pop()
+        start, cost, prev, one_way = search_node
         tile = read_tile(tiles, prev)
         if tile in "<>v^":
             one_way = True
-        nexts = clamp_to_grid(
-            tiles, adjacent(prev).difference([prev]).difference(seen).difference(rocks)
-        )
-        if len(nexts) == 1:
-            walks.append((start, cost + 1, nexts[0], one_way))
-        else:
+        if prev in junctions and prev != start:
             edges.append((start, prev, cost))
             if not one_way:
                 edges.append((prev, start, cost))
-            for n in nexts:
+        else:
+            seen.add(prev)
+            nexts = set(
+                clamp_to_grid(tiles, adjacent(prev).difference([prev, start]).difference(rocks))
+            )
+            next_unseen = list(nexts.difference(seen))
+            if len(next_unseen) > 1:
+                raise RuntimeError(next_unseen, seen, search_node)
+
+            for n in next_unseen:
                 next_tile = read_tile(tiles, n)
                 if next_validator[next_tile](prev, n):
-                    walks.append((prev, 0, n, False))
+                    walks.append((start, cost + 1, n, one_way))
+    pprint({"graph_size": len(edges), "graph": edges, "E": END})
     return edges
 
 
@@ -105,6 +125,8 @@ def part1(input: Input):
     log = logs.append
     most_routes = 1
     while routes:
+        if len(routes) >= 1000:
+            raise RuntimeError("overflow")
         most_routes = max(most_routes, len(routes))
         current, cost, seen = routes.pop()
         if current == END:
@@ -124,10 +146,10 @@ def part1(input: Input):
             if there not in seen:
                 added += 1
                 routes.append((there, cost + dist, new_seen))
-    print(f"best {best} of {route_count} / {most_routes}: {best_path}")
+    # print(f"best {best} of {route_count} / {most_routes}: {best_path}")
     # pprint({"graph": graph})
     # pprint(all_paths)
-    pprint(logs)
+    # pprint(logs)
     return best
 
 
@@ -141,7 +163,8 @@ class Tests(unittest.TestCase):
 
     def test_graph(self):
         graph = make_graph(parse(example))
-        self.assertEqual(((0, 1), (5, 3), 15), graph[0])
+        self.assertIn(((0, 1), (5, 3), 15), graph)
+        self.assertIn(((5, 3), (3, 11), 22), graph)
 
     def test_part1_example_answer(self):
         self.assertEqual(94, part1(parse(example)))
@@ -149,9 +172,11 @@ class Tests(unittest.TestCase):
     def test_part1_answer(self):
         self.assertEqual(-1, part1(parse(data)))
 
+    @unittest.skip
     def test_part2_example_answer(self):
         self.assertEqual(-1, part2(parse(example)))
 
+    @unittest.skip
     def test_part2_answer(self):
         self.assertEqual(-1, part2(parse(data)))
 
