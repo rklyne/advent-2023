@@ -99,9 +99,7 @@ def part2(input: Input):
             sympy.Eq(pz + time * vz, pos.z + time * vec.z),
         ]
 
-    pprint(eqs)
     point = sympy.solve(eqs, syms)[0]
-    pprint(point)
 
     return sum(point[:3])
 
@@ -121,7 +119,7 @@ class Tests(unittest.TestCase):
         self.assertEqual(47, part2(parse(example)))
 
     def test_part2_answer(self):
-        self.assertEqual(-1, part2(parse(data)))
+        self.assertEqual(920630818300104, part2(parse(data)))
 
 
 if __name__ == "__main__":
