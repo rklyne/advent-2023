@@ -20,6 +20,7 @@ PuzzleInput = Tuple[list[Flow], list[Input]]
 class Computer:
     MAX = 4000 + 1
     _reversed_flows: Dict[Name, list[Name]]
+    _flows: Dict[Name, Flow]
     letter_idx: Dict[Name, int] = {
         "x": 0,
         "m": 1,
@@ -29,16 +30,10 @@ class Computer:
 
     def __init__(self, flows: list[Flow]):
         self.flows = flows
-        self._flows = {
-            f[0]: f
-            for f in flows
-        }
-        self._flow_functions = {
-            f: self._mk_f(cs, d)
-            for (f, cs, d) in flows
-        }
+        self._flows = {f[0]: f for f in flows}
+        self._flow_functions = {f: self._mk_f(cs, d) for (f, cs, d) in flows}
         self._reversed_flows = {}
-        for (f, cs, d) in flows:
+        for f, cs, d in flows:
             for c in cs:
                 self._reversed_flows.setdefault(c[3], []).append(f)
             self._reversed_flows.setdefault(d, []).append(f)
@@ -48,9 +43,9 @@ class Computer:
         matches = []
         for c in cs:
             if c[1] == ">":
-                op = lambda n, i=cls.letter_idx[c[0]], x=c[2]: n[i]>x
+                op = lambda n, i=cls.letter_idx[c[0]], x=c[2]: n[i] > x
             elif c[1] == "<":
-                op = lambda n, i=cls.letter_idx[c[0]], x=c[2]: n[i]<x
+                op = lambda n, i=cls.letter_idx[c[0]], x=c[2]: n[i] < x
             else:
                 raise RuntimeError(c)
             matches.append((op, c[3]))
@@ -60,6 +55,7 @@ class Computer:
                 if _f(i):
                     return r
             return default
+
         return f
 
     def process(self, instr: Input) -> int:
@@ -72,58 +68,44 @@ class Computer:
             pos = self._flow_functions[pos](instr)
         raise RuntimeError("bad looping")
 
-    def paths_to(self, target, start="in"):
-        opts = [
-            set(range(1, self.MAX))
-            for c in 'xmas'
-        ]
-        return self._paths_to('A', opts, start)
+    def forward_paths(self, start="in") -> int:
+        opts = [set(range(1, self.MAX)) for c in "xmas"]
+        print()
+        return self._forward_paths_to(start, opts)
 
-    def _paths_to(self, target: Name, sets_in: list[set[int]], finish: Name, history=[]):
-        print(f">>> {history} + {target}\n  > _paths_to({target}, {[len(s) for s in sets_in]}, {finish})")
-        if target == finish:
-            amount = reduce(operator.mul, list(map(len, sets_in)), 1)
-            print(f"PART({history} {target}): {amount}")
+    def _forward_paths_to(
+        self, source: Name, sets_in: list[set[int]], log_prefix=""
+    ) -> int:
+        if source == "A":
+            ls = [len(s) for s in sets_in]
+            amount = reduce(operator.mul, ls, 1)
+            # print(f"{log_prefix}ACCEPT {amount} from {ls}")
             return amount
-        names = self._reversed_flows[target]
-        # TODO:
-        """
-        the plan:
-        - for each flow that ends at X:
-            - (pre inverted from Y: [X] to X: [Y])
-            - for each of the forward conditions from Y:
-                - add recursive call to arrives at Y, with set limited by condition
-                - update my sets to limit by negated condition
-                - add recursion to default by my final sets
-        """
+        if source == "R":
+            return 0
+        flow_name, conds, default = self._flows[source]
         total = 0
-        print(f"names[{target}] = {names}")
-        for name in names:
-            if name == "R":
-                continue
-            sets = sets_in[:]
-            _, conds, default = self._flows[name]
-            for cond in conds:
-                char, op, const, to = cond
-                cidx = self.letter_idx[char]
+        sets = sets_in[:]
+        for cond in conds:
+            char, op, const, to = cond
+            cidx = self.letter_idx[char]
+            if op == "<":  # var < const
                 op_set = set(range(1, const))
-                neg_set = set(range(const+1, self.MAX))
-                if op == ">":
-                    op_set, neg_set = neg_set, op_set
-                if to == target:
-                    new_sets = [(s.intersection(op_set) if i == cidx else s) for i, s in enumerate(sets)]
-                    extra = self._paths_to(name, new_sets, finish, history + [target])
-                    print(f"CHOOSE({extra}): cond {cond}")
-                    total += extra
-                    break
-                sets = [(s.intersection(neg_set) if i == cidx else s) for i, s in enumerate(sets)]
-            else:
-                if default == target:
-                    extra = self._paths_to(name, sets, finish, history + [target])
-                    print(f"CHOOSE({extra}): default {default}")
-                    total += extra
-                else:
-                    raise RuntimeError(target, names, name, conds, default)
+                neg_set = set(range(const, self.MAX))
+            else:  # var > const
+                op_set = set(range(const + 1, self.MAX))
+                neg_set = set(range(1, const + 1))
+            new_sets = [
+                (s.intersection(op_set) if i == cidx else s) for i, s in enumerate(sets)
+            ]
+            extra = self._forward_paths_to(to, new_sets, log_prefix+"  ")
+            total += extra
+            sets = [
+                (s.intersection(neg_set) if i == cidx else s)
+                for i, s in enumerate(sets)
+            ]
+        extra = self._forward_paths_to(default, sets, log_prefix+"  ")
+        total += extra
         return total
 
 
@@ -161,7 +143,7 @@ def part1(input: PuzzleInput):
 def part2(input: PuzzleInput):
     flows, inputs = input
     computer = Computer(flows)
-    result = computer.paths_to('A')
+    result = computer.forward_paths()
     return result
 
 
@@ -185,9 +167,8 @@ class Tests(unittest.TestCase):
     def test_part2_example_answer(self):
         self.assertNumEqual(167409079868000, part2(parse(example)))
 
-    @unittest.skip
     def test_part2_answer(self):
-        self.assertEqual(-1, part2(parse(data)))
+        self.assertEqual(130090458884662, part2(parse(data)))
 
 
 if __name__ == "__main__":
